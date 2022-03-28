@@ -81,7 +81,7 @@ const CollapsibleView = ({
         });
       }
     },
-    [duration, ROTATE_ANGLE, rotateAnim, show]
+    [duration, rotateAnim, show]
   );
 
   const handleToggleShow = () => {
