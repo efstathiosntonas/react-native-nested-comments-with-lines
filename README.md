@@ -1,13 +1,23 @@
 ## React Native Nested Comments With Line Indicators
 
-### Uses reanimated 2 to collapse comments, react-native-svg for the line drawing and FlatList
+### Uses reanimated 2 to collapse comments via [`reanimated-collapsible-helpers`](https://github.com/Trancever/reanimated-collapsible-helpers), [`react-native-svg`](https://github.com/react-native-svg/react-native-svg) for the line drawing and FlatList. 
 
-#### Notice:
+---
+#### Notice 1:
 Code and typings are rough and maybe ugly, for sure it can be improved. It's just an MVP to get it working. If you have suggestions or improvements feel free to Pull Request.
 
+#### Notice 2:
+If you want to use reanimated 1 then delete the patch folder
+
+#### Notice 3:
+
+`CollapsibleView` was inspired by [Eliav2/react-native-collapsible-view](https://github.com/Eliav2/react-native-collapsible-view)
+
+---
 Supports 2 level of nesting like major social apps.
 
 #### Battle tested with hundreds of comments with 0 lag.
+
 
 The struggle to built it was real...
 

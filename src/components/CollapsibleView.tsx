@@ -23,7 +23,6 @@ const CollapsibleView = ({
   expanded = null,
   unmountOnCollapse = false,
   duration = 200,
-  collapsibleProps = {},
   collapsibleContainerStyle = {},
   arrowStyling = {},
   noArrow = false,
@@ -39,18 +38,19 @@ const CollapsibleView = ({
   isParentLast = false,
   parentCommentLength = 0
 }) => {
-  const {animatedHeight, height, onPress, onLayout, state} = useCollapsible();
-
-  const controlled = expanded !== null;
   const [show, setShow] = useState<boolean | null | undefined>(initExpanded);
-  const [mounted, setMounted] = useState(initExpanded);
+
+  const {animatedHeight, onPress, onLayout, state, mounted, setMounted} =
+    useCollapsible({
+      state: initExpanded ? 'expanded' : 'collapsed',
+      unmountOnCollapse,
+      show
+    });
 
   const rotateAnim = useSharedValue(0);
 
-  if (controlled) {
-    if (!mounted && expanded) {
-      setMounted(true);
-    }
+  if (!mounted && expanded) {
+    setMounted(true);
   }
 
   const rotation = useDerivedValue(() => {
@@ -85,16 +85,14 @@ const CollapsibleView = ({
   );
 
   const handleToggleShow = () => {
-    if (!controlled) {
-      if (!mounted) {
-        if (!show) {
-          onPress();
-          setMounted(true);
-        }
-      } else {
+    if (!mounted) {
+      if (!show) {
         onPress();
-        setShow(!show);
+        setMounted(true);
       }
+    } else {
+      onPress();
+      setShow(!show);
     }
   };
 
@@ -103,7 +101,6 @@ const CollapsibleView = ({
     // not be interrupted.
     if (mounted) {
       setShow(true);
-      // handleArrowRotate();
     }
   }, [mounted]);
 
@@ -118,12 +115,12 @@ const CollapsibleView = ({
 
   useEffect(() => {
     if (mounted) {
-      handleArrowRotate(!show);
+      handleArrowRotate(show);
     }
-    if (controlled && show !== expanded) {
+    if (show !== expanded) {
       setShow(expanded);
     }
-  }, [controlled, expanded, handleArrowRotate, mounted, show]);
+  }, [expanded, handleArrowRotate, mounted, show]);
 
   return (
     <View style={styles.container}>

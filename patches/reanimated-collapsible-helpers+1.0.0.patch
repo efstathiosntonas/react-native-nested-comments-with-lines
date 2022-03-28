@@ -1,0 +1,162 @@
+diff --git a/node_modules/reanimated-collapsible-helpers/lib/typescript/src/AnimatedSection.d.ts b/node_modules/reanimated-collapsible-helpers/lib/typescript/src/AnimatedSection.d.ts
+index 768068e..651f01b 100644
+--- a/node_modules/reanimated-collapsible-helpers/lib/typescript/src/AnimatedSection.d.ts
++++ b/node_modules/reanimated-collapsible-helpers/lib/typescript/src/AnimatedSection.d.ts
+@@ -3,11 +3,17 @@ import { LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
+ import Animated from 'react-native-reanimated';
+ import type { State } from './types';
+ declare type Props = {
+-    children: React.ReactNode;
+-    onLayout: (event: LayoutChangeEvent) => void;
+-    animatedHeight: Animated.Node<number>;
+-    state: State;
+-    style?: StyleProp<Animated.AnimateStyle<ViewStyle>>;
++  children: React.ReactNode;
++  onLayout: (event: LayoutChangeEvent) => void;
++  animatedHeight: Animated.Node<number>;
++  state: State;
++  style?: StyleProp<Animated.AnimateStyle<ViewStyle>>;
+ };
+-export declare function AnimatedSection({ children, onLayout, animatedHeight, state, style, }: Props): JSX.Element;
++export declare function AnimatedSection({
++  children,
++  onLayout,
++  animatedHeight,
++  state,
++  style,
++}: Props): JSX.Element;
+ export {};
+diff --git a/node_modules/reanimated-collapsible-helpers/lib/typescript/src/types.d.ts b/node_modules/reanimated-collapsible-helpers/lib/typescript/src/types.d.ts
+index 039c025..3912f9e 100644
+--- a/node_modules/reanimated-collapsible-helpers/lib/typescript/src/types.d.ts
++++ b/node_modules/reanimated-collapsible-helpers/lib/typescript/src/types.d.ts
+@@ -2,5 +2,8 @@ import type Animated from 'react-native-reanimated';
+ export declare type State = 'expanded' | 'collapsed';
+ export declare type Config = {
+     duration?: number;
+-    easing?: Animated.EasingFunction;
++    easing?: Animated.EasingNodeFunction;
++    state: string;
++    show: boolean | null | undefined;
++    unmountOnCollapse: boolean | null | undefined;
+ };
+diff --git a/node_modules/reanimated-collapsible-helpers/lib/typescript/src/useCollapsible.d.ts b/node_modules/reanimated-collapsible-helpers/lib/typescript/src/useCollapsible.d.ts
+index a76dd60..fa309f4 100644
+--- a/node_modules/reanimated-collapsible-helpers/lib/typescript/src/useCollapsible.d.ts
++++ b/node_modules/reanimated-collapsible-helpers/lib/typescript/src/useCollapsible.d.ts
+@@ -2,9 +2,11 @@ import type { LayoutChangeEvent } from 'react-native';
+ import Animated from 'react-native-reanimated';
+ import type { State, Config } from './types';
+ export declare function useCollapsible(config?: Config): {
+-    onLayout: (event: LayoutChangeEvent) => void;
+-    onPress: () => void;
+-    animatedHeight: Animated.Node<number>;
+-    height: number;
+-    state: State;
++  onLayout: (event: LayoutChangeEvent) => void;
++  onPress: () => void;
++  animatedHeight: Animated.Node<number>;
++  height: number;
++  state: State;
++  setMounted: (mounted: boolean) => void;
++  mounted: boolean;
+ };
+diff --git a/node_modules/reanimated-collapsible-helpers/src/reanimatedHelpers.ts b/node_modules/reanimated-collapsible-helpers/src/reanimatedHelpers.ts
+index b26a76e..b6a68cb 100644
+--- a/node_modules/reanimated-collapsible-helpers/src/reanimatedHelpers.ts
++++ b/node_modules/reanimated-collapsible-helpers/src/reanimatedHelpers.ts
+@@ -1,22 +1,14 @@
+-import Animated, { Easing } from 'react-native-reanimated';
++import Animated, { EasingNode } from 'react-native-reanimated';
+ 
+-const {
+-  Value,
+-  set,
+-  cond,
+-  startClock,
+-  clockRunning,
+-  timing,
+-  stopClock,
+-  block,
+-} = Animated;
++const { Value, set, cond, startClock, clockRunning, timing, stopClock, block } =
++  Animated;
+ 
+ export function runTiming(
+   clock: Animated.Clock,
+   value: Animated.Value<number>,
+   dest: Animated.Value<number>,
+   duration: number = 250,
+-  easing: Animated.EasingFunction = Easing.out(Easing.ease)
++  easing: Animated.EasingNodeFunction = EasingNode.out(EasingNode.ease)
+ ) {
+   const state = {
+     finished: new Value(0),
+diff --git a/node_modules/reanimated-collapsible-helpers/src/types.ts b/node_modules/reanimated-collapsible-helpers/src/types.ts
+index 63710b0..84b6181 100644
+--- a/node_modules/reanimated-collapsible-helpers/src/types.ts
++++ b/node_modules/reanimated-collapsible-helpers/src/types.ts
+@@ -4,5 +4,10 @@ export type State = 'expanded' | 'collapsed';
+ 
+ export type Config = {
+   duration?: number;
+-  easing?: Animated.EasingFunction;
++  easing?: Animated.EasingNodeFunction;
++  state: string;
++  show: boolean | null | undefined;
++  unmountOnCollapse: boolean | null | undefined;
++  setMounted: () => void;
++  mounted: boolean;
+ };
+diff --git a/node_modules/reanimated-collapsible-helpers/src/useCollapsible.ts b/node_modules/reanimated-collapsible-helpers/src/useCollapsible.ts
+index 2cea421..3f78337 100644
+--- a/node_modules/reanimated-collapsible-helpers/src/useCollapsible.ts
++++ b/node_modules/reanimated-collapsible-helpers/src/useCollapsible.ts
+@@ -1,4 +1,4 @@
+-import React from 'react';
++import React, { useCallback } from 'react';
+ import type { LayoutChangeEvent } from 'react-native';
+ import Animated from 'react-native-reanimated';
+ 
+@@ -9,7 +9,9 @@ const { Clock, Value } = Animated;
+ 
+ export function useCollapsible(config?: Config) {
+   const [height, setHeight] = React.useState(0);
+-  const [state, setState] = React.useState<State>('collapsed');
++  const [state, setState] = React.useState<State>(
++    config?.state === 'expanded' ? 'expanded' : 'collapsed'
++  );
+ 
+   const { current: clock } = React.useRef(new Clock());
+   const { current: progress } = React.useRef(new Value<number>(0));
+@@ -18,11 +20,22 @@ export function useCollapsible(config?: Config) {
+     runTiming(clock, progress, animation, config?.duration, config?.easing)
+   );
+ 
++  const [mounted, setMounted] = React.useState(
++    config?.state === 'expanded' ? true : false
++  );
++
++  const handleAnimationEnd = () => {
++    if (config?.unmountOnCollapse && !config?.show) setMounted(false);
++  };
++
+   React.useEffect(() => {
+     if (state === 'collapsed') {
+       animation.setValue(0);
++      setMounted(false);
++      handleAnimationEnd();
+     } else {
+       animation.setValue(height);
++      setMounted(true);
+     }
+   }, [state, height, animation]);
+ 
+@@ -47,5 +60,7 @@ export function useCollapsible(config?: Config) {
+     animatedHeight,
+     height,
+     state,
++    mounted,
++    setMounted,
+   };
+ }
