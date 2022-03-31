@@ -10,6 +10,8 @@ Code and typings are rough and maybe ugly, for sure it can be improved. It's jus
 
 `CollapsibleView` was inspired by [Eliav2/react-native-collapsible-view](https://github.com/Eliav2/react-native-collapsible-view)
 
+#### Notice 3:
+`reanimated-collabsiple-headers` is patched to support some extra props`, changes are in patches folder
 ---
 Supports 2 level of nesting like major social apps.
 
