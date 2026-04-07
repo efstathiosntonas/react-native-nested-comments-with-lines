@@ -12,13 +12,11 @@ A React Native proof-of-concept for nested comments with SVG connecting lines an
 - Nested comments up to 4 levels deep
 - SVG spine + bezier elbow connecting lines between parent and child comments
 - Tap the gutter line or "View N replies" to expand/collapse
-- Dark theme (`#111` background, `#262626` comment bubbles)
 - Author badge, timestamps, Love/Reply actions
-- Pure `StyleSheet` — no styled-components, no theme library
 
 ## Stack
 
-- Expo 54 / React Native 0.81
+- Expo 55 / React Native 0.83
 - React 19
 - `react-native-svg` for connecting lines
 - `date-fns` for timestamps

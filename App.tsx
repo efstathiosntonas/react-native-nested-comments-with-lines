@@ -1,6 +1,6 @@
 import React from 'react';
 import { FlatList, SafeAreaView, StyleSheet } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 
 import CommentThread from './components/comments/CommentThread';
 import { mockComments } from './components/comments/mockData';
@@ -10,7 +10,6 @@ const POST_AUTHOR_ID = 'user-3';
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={styles.root}>
       <SafeAreaView style={styles.safe}>
         <FlatList<Comment>
           data={mockComments}
@@ -28,7 +27,6 @@ export default function App() {
           contentContainerStyle={styles.list}
         />
       </SafeAreaView>
-    </GestureHandlerRootView>
   );
 }
 
