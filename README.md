@@ -1,28 +1,49 @@
-## React Native Nested Comments With Line Indicators
+# react-native-nested-comments-with-lines
 
-### Uses reanimated 2 to collapse comments via [`reanimated-collapsible-helpers`](https://github.com/Trancever/reanimated-collapsible-helpers), [`react-native-svg`](https://github.com/react-native-svg/react-native-svg) for the line drawing and FlatList. 
-
----
-#### Notice 1:
-Code and typings are rough and maybe ugly, for sure it can be improved. It's just an MVP to get it working. If you have suggestions or improvements feel free to Pull Request.
-
-#### Notice 2:
-
-`CollapsibleView` was inspired by [Eliav2/react-native-collapsible-view](https://github.com/Eliav2/react-native-collapsible-view)
-
-#### Notice 3:
-
-`reanimated-collabsiple-headers` is patched to support some extra props, changes are in patches folder
-
----
-Supports 2 level of nesting like major social apps.
-
-#### Battle tested with hundreds of comments with 0 lag.
+| Demo |
+|-|
+| <video src="https://github.com/user-attachments/assets/1f1aad15-d36d-4666-bbfb-42b8cee74aee" autoplay loop muted playsinline></video> |
 
 
-The struggle to built it was real...
+A React Native proof-of-concept for nested comments with SVG connecting lines and animated expand/collapse, built with Expo.
 
-Demo:
+## Features
 
-https://user-images.githubusercontent.com/717975/160124970-0d256d37-5f8f-40b0-a89d-8e78394354de.mov
+- Nested comments up to 4 levels deep
+- SVG spine + bezier elbow connecting lines between parent and child comments
+- Tap the gutter line or "View N replies" to expand/collapse
+- Dark theme (`#111` background, `#262626` comment bubbles)
+- Author badge, timestamps, Love/Reply actions
+- Pure `StyleSheet` — no styled-components, no theme library
 
+## Stack
+
+- Expo 54 / React Native 0.81
+- React 19
+- `react-native-svg` for connecting lines
+- `date-fns` for timestamps
+
+## Run
+
+```bash
+npm install
+npx expo start
+```
+
+Open in iOS Simulator, Android Emulator, or Expo Go.
+
+## Structure
+
+```
+components/comments/
+  ThreadlineGroup.tsx   # SVG gutter (spine + elbows) + content rows
+  CommentThread.tsx     # Recursive thread, expand/collapse state
+  PostComment.tsx       # Comment card, reports avatar anchor Y for line drawing
+  CommentBody.tsx       # Dark bubble with name + content
+  PostCommentName.tsx   # Author name, badges, timestamp
+  PostCommentAvatar.tsx # Circular avatar image
+  CommentFooter.tsx     # Love / Reply buttons
+  RepliesToggleRow.tsx  # "View N replies" toggle
+  types.ts              # Comment + AuthorProfile types
+  mockData.ts           # 4-level nested mock data
+```
