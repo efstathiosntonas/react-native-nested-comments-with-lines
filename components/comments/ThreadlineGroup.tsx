@@ -12,22 +12,28 @@ import { LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 /* Width reserved for the outermost thread gutter, where the top-level spine is
-   drawn. The root gutter is wider because it visually sits beside the main
-   comment avatar/content block. */
+   drawn. In `CommentThread`, the root `PostComment` row is shifted left by this
+   amount (`marginLeft: -selfOffset`) so the gutter can occupy avatar space
+   without pushing the visible comment content further right. */
 export const THREADLINE_ROOT_COLUMN_WIDTH = 44;
 
 /* Width reserved for nested child gutters. Children already sit indented, so
-   they can use a narrower SVG canvas without crowding the content column. */
+   they can use a narrower SVG canvas without crowding the content column.
+   `CommentThread` uses this width as the child `selfOffset`. */
 export const THREADLINE_CHILD_COLUMN_WIDTH = 30;
 
 /* Maximum radius used when bending a vertical line into a horizontal branch.
    This keeps elbows rounded instead of sharp right angles. */
 const ELBOW_RADIUS = 30;
 
-/* X coordinate where the root thread spine should be drawn inside the gutter. */
+/* X coordinate where the root thread spine should be drawn inside the gutter.
+   This matches the center of the root avatar size from `PostCommentAvatar`:
+   root avatars are 36px wide, so their center sits at x = 18. */
 const ROOT_COLUMN_ANCHOR_X = 18;
 
-/* X coordinate where nested child spines should be drawn inside their gutter. */
+/* X coordinate where nested child spines should be drawn inside their gutter.
+   Child avatars are 22px wide in `PostCommentAvatar`, so x = 11 lines the
+   spine up with the avatar center for nested comments. */
 const CHILD_COLUMN_ANCHOR_X = 11;
 
 /* Small right-side inset so the branch line stops slightly before the gutter
@@ -51,12 +57,15 @@ export type ThreadlineRow = {
      for cached row measurements. */
   id: string;
 
-  /* Present on the row model for sibling-aware rendering upstream. This file
-     does not currently use it directly, but it remains part of the contract. */
+  /* Used by `CommentThread` when it recursively renders child `comment` rows.
+     That parent passes this through as `isLastInLevel`, which affects how the
+     nested branch builds its own next level of thread lines. */
   isLastSibling: boolean;
 
-  /* Declares the visual role of the row so path generation knows whether this
-     row starts the spine, receives a branch, or represents the trailing toggle. */
+  /* Declares which concrete UI row `CommentThread` will render:
+     - `self` => the current comment's `PostComment`
+     - `comment` => a recursive child `CommentThread`
+     - `toggle` => `RepliesToggleRow` */
   kind: ThreadlineRowKind;
 };
 
@@ -78,13 +87,19 @@ type ThreadlineGroupProps = {
   onPressGutter?: () => void;
 
   /* Consumer-provided renderer for the actual row content. We pass back a
-     callback so each row can report a precise connector anchor if needed. */
+     callback so each row can report a precise connector anchor if needed.
+     In this codebase `CommentThread` uses that hook in three real ways:
+     - `PostComment` reports the avatar center
+     - child `CommentThread` bubbles its own self anchor upward
+     - `RepliesToggleRow` reports the button midpoint */
   renderRow: (
     row: ThreadlineRow,
     api: { onAnchorWithinRow: (y: number) => void },
   ) => ReactNode;
 
-  /* Ordered rows that make up this visual threadline group. */
+  /* Ordered rows that make up this visual threadline group. `CommentThread`
+     always builds them in logical reading order:
+     self comment first, then visible child comments, then the toggle row. */
   rows: ThreadlineRow[];
 
   /* Optional test handle for e2e queries. */
@@ -145,10 +160,13 @@ function computePaths(input: {
      spine, and we stop a few pixels short of the gutter edge for breathing room. */
   const horizontalEnd = Math.max(connectorX, gutterWidth - ELBOW_END_GAP);
 
-  /* The first measured row defines where the vertical spine starts. */
+  /* The first measured row is the current comment's own `PostComment`, so its
+     anchor is the avatar center reported from `PostComment.onAvatarLayout`. */
   const first = measured[0];
 
-  /* The last measured row defines where the group terminates. */
+  /* The last measured row is either:
+     - the last visible child thread when replies are expanded, or
+     - the `RepliesToggleRow` when collapsed / when the toggle is last. */
   const last = measured[measured.length - 1];
 
   /* Y where the vertical spine begins. */
@@ -171,9 +189,9 @@ function computePaths(input: {
         )
       : 0;
 
-  /* A trailing "toggle" row is special: instead of ending with a hard corner,
-     we let the main spine bend into the final horizontal segment so the gutter
-     visually communicates "continuation/collapse" rather than "another child". */
+  /* A trailing `RepliesToggleRow` is special: instead of ending with a hard
+     corner, we let the main spine bend into the final horizontal segment so
+     the gutter visually reads like "continue into the toggle control". */
   const spineEndY = last.row.kind === 'toggle' ? Math.max(startY, lastY - radius) : lastY;
   const shouldDrawCombinedElbow = last.row.kind === 'toggle' && radius > 0;
 
@@ -217,9 +235,9 @@ function computePaths(input: {
     /* We stop before the last measured row because that row is already handled
        by the terminal logic above. This loop only adds intermediate branches. */
     const { row, m } = measured[i];
-    /* The "self" row establishes the starting point of the spine but should
-       not get its own elbow. Every later non-terminal row receives a branch
-       that turns toward the rendered row content. */
+    /* The "self" row is the current comment's own `PostComment`. It establishes
+       the top anchor for the spine, but we do not draw a separate elbow into it
+       because the spine already starts at that row's avatar center. */
     if (row.kind === 'self') continue;
 
     /* Absolute Y position where this row's branch should meet the spine. */
@@ -268,7 +286,8 @@ function computePaths(input: {
 
 type ContentColumnProps = {
   /* Receives a row-local anchor from children and converts it into group-level
-     geometry in the parent component. */
+     geometry in the parent component. In practice this is called from
+     `PostComment`, nested `CommentThread`, or `RepliesToggleRow`. */
   onAnchorWithinRow: (rowId: string, y: number) => void;
 
   /* Reports the total content-column height so the SVG gutter can match it. */
@@ -287,7 +306,8 @@ type ContentColumnProps = {
 const ContentColumn = memo(
   /* The content column is intentionally isolated from the SVG gutter so rows
      can render normally while still reporting measurements back to the parent.
-     That keeps line-drawing concerns centralized in ThreadlineGroup. */
+     In this folder that means `PostComment`, nested `CommentThread`, and
+     `RepliesToggleRow` stay focused on UI while this component owns the lines. */
   ({ rows, renderRow, onGroupLayout, onRowLayout, onAnchorWithinRow }: ContentColumnProps) => (
     <View onLayout={onGroupLayout} style={styles.content}>
       {rows.map((row) => (
@@ -298,7 +318,9 @@ const ContentColumn = memo(
           onLayout={(e) => onRowLayout(row.id, e)}
         >
           {/* Rows receive a callback for reporting a connector anchor inside
-              themselves, such as the center of an avatar or text block. */}
+              themselves. In the current implementation this ultimately comes
+              from a `PostComment` avatar center, a nested `CommentThread`
+              bubbling that same anchor upward, or a toggle button midpoint. */}
           {renderRow(row, { onAnchorWithinRow: (y) => onAnchorWithinRow(row.id, y) })}
         </View>
       ))}
@@ -357,8 +379,9 @@ const ThreadlineGroup: FC<ThreadlineGroupProps> = ({
     /* Layout gives us this wrapper's top offset (`y`) and its full height
        inside the group coordinate system. */
     const { y, height } = e.nativeEvent.layout;
-    /* Until a row provides a custom anchor, use its vertical midpoint. This
-       gives every row a sensible connector target even on the first layout. */
+    /* Until a row provides a custom anchor, use its vertical midpoint. That is
+       mostly a fallback path here, because `PostComment` and `RepliesToggleRow`
+       both report more precise anchors after they mount. */
     /* Convert the row-local anchor into an absolute group-local Y coordinate,
        because the SVG path builder only understands one shared coordinate system. */
     const anchorWithin = rowAnchorWithinRef.current[rowId] ?? height / 2;
@@ -371,9 +394,11 @@ const ThreadlineGroup: FC<ThreadlineGroupProps> = ({
   }, []);
 
   const onAnchorWithinRow = useCallback((rowId: string, anchorYWithinRow: number) => {
-    /* Rows can opt into a more precise visual anchor than their midpoint
-       (for example, aligning the branch to an avatar center or text baseline).
-       When that happens we rewrite the stored absolute anchor immediately. */
+    /* Rows can opt into a more precise visual anchor than their midpoint.
+       In this folder that is how:
+       - `PostComment` aligns the line to the avatar center
+       - `RepliesToggleRow` aligns the line to the toggle button center
+       - recursive child `CommentThread` bubbles its own self anchor upward */
     rowAnchorWithinRef.current[rowId] = anchorYWithinRow;
     const existing = rowRectsRef.current[rowId];
 
@@ -440,7 +465,8 @@ const ThreadlineGroup: FC<ThreadlineGroupProps> = ({
       </Pressable>
 
       {/* Content renders beside the gutter, but continuously feeds layout and
-          anchor information back up so the SVG can stay in sync. */}
+          anchor information back up so the SVG can stay in sync with the
+          recursive `CommentThread` tree rendered in this folder. */}
       <ContentColumn
         onAnchorWithinRow={onAnchorWithinRow}
         onGroupLayout={onGroupLayout}
