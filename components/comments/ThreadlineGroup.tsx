@@ -15,12 +15,12 @@ import Svg, { Path } from 'react-native-svg';
    drawn. In `CommentThread`, the root `PostComment` row is shifted left by this
    amount (`marginLeft: -selfOffset`) so the gutter can occupy avatar space
    without pushing the visible comment content further right. */
-export const THREADLINE_ROOT_COLUMN_WIDTH = 44;
+const THREADLINE_ROOT_COLUMN_WIDTH = 44;
 
 /* Width reserved for nested child gutters. Children already sit indented, so
    they can use a narrower SVG canvas without crowding the content column.
    `CommentThread` uses this width as the child `selfOffset`. */
-export const THREADLINE_CHILD_COLUMN_WIDTH = 30;
+const THREADLINE_CHILD_COLUMN_WIDTH = 30;
 
 /* Maximum radius used when bending a vertical line into a horizontal branch.
    This keeps elbows rounded instead of sharp right angles. */
@@ -41,16 +41,16 @@ const CHILD_COLUMN_ANCHOR_X = 11;
 const ELBOW_END_GAP = 6;
 
 /* Shared stroke color for every spine and elbow segment in the gutter SVG. */
-export const LINE_COLOR = '#48484a';
+const LINE_COLOR = '#48484a';
 
 /* Shared stroke width for every rendered threadline segment. */
-export const LINE_WIDTH = 2;
+const LINE_WIDTH = 2;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type ThreadlineColumnVariant = 'root' | 'child';
+type ThreadlineColumnVariant = 'root' | 'child';
 
-export type ThreadlineRowKind = 'self' | 'comment' | 'toggle';
+type ThreadlineRowKind = 'self' | 'comment' | 'toggle';
 
 export type ThreadlineRow = {
   /* Stable identifier used both as the React list key and as the lookup key

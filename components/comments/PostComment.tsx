@@ -8,9 +8,7 @@ import type { Comment } from './types';
 
 type Props = {
   comment: Comment;
-  index: number;
   isHighlightedForReply?: boolean;
-  isLast: boolean;
   level: number;
   onAvatarAnchorWithinRow?: (y: number) => void;
   postAuthorId: string;
@@ -18,9 +16,7 @@ type Props = {
 
 const PostComment = ({
   comment,
-  index: _index,
   isHighlightedForReply,
-  isLast: _isLast,
   level,
   onAvatarAnchorWithinRow,
   postAuthorId,

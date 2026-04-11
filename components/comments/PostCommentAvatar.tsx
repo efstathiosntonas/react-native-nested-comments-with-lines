@@ -6,8 +6,8 @@ type Props = {
   level: number;
 };
 
-export const AVATAR_SIZE_ROOT = 36;
-export const AVATAR_SIZE_CHILD = 22;
+const AVATAR_SIZE_ROOT = 36;
+const AVATAR_SIZE_CHILD = 22;
 
 export const getAvatarSize = (level: number) =>
   level === 0 ? AVATAR_SIZE_ROOT : AVATAR_SIZE_CHILD;

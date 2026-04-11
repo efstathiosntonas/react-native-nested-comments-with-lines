@@ -11,22 +11,16 @@ import type { Comment } from './types';
 
 interface CommentThreadProps {
   comment: Comment;
-  index: number;
-  isLastInLevel: boolean;
   level: number;
   onSelfAnchorWithinRow?: (y: number) => void;
   postAuthorId: string;
-  siblingsCount: number;
 }
 
 const CommentThreadComponent = ({
   comment,
-  index,
-  isLastInLevel,
   level,
   onSelfAnchorWithinRow,
   postAuthorId,
-  siblingsCount: _siblingsCount,
 }: CommentThreadProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -89,9 +83,7 @@ const CommentThreadComponent = ({
           <View pointerEvents="box-none" style={{ marginLeft: -selfOffset }}>
             <PostComment
               comment={comment}
-              index={index}
               isHighlightedForReply={false}
-              isLast={isLastInLevel}
               level={level}
               onAvatarAnchorWithinRow={handleAnchorWithinRow}
               postAuthorId={postAuthorId}
@@ -116,18 +108,13 @@ const CommentThreadComponent = ({
       const childComment = childMap.get(row.id);
       if (!childComment) return null;
 
-      const idx = childComments.findIndex((c) => c.id === row.id);
-
       return (
         <CommentThread
           comment={childComment}
-          index={idx}
-          isLastInLevel={row.isLastSibling}
           key={childComment.id}
           level={level + 1}
           onSelfAnchorWithinRow={api.onAnchorWithinRow}
           postAuthorId={postAuthorId}
-          siblingsCount={childComments.length}
         />
       );
     },
@@ -136,9 +123,7 @@ const CommentThreadComponent = ({
       childMap,
       comment,
       handleToggleReplies,
-      index,
       isExpanded,
-      isLastInLevel,
       level,
       onSelfAnchorWithinRow,
       postAuthorId,
